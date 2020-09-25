@@ -1,0 +1,10 @@
+# Normally it would be good to have the settings
+# and the project at the same location, but since
+# conda location is absolute, there is no point
+# for keeping it.
+.vscode/settings.json
+.vscode/.code-workspace
+
+# Python related
+__pycache__
+**/output/**
