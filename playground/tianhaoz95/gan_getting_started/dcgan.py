@@ -1,25 +1,33 @@
 import tensorflow as tf
-import numpy as np
-import PIL as pimg
 import os
 import matplotlib.pyplot as plt
-from utils import check_gpu
+from utils import check_gpu, create_directory_if_not_exist
 from loguru import logger
 from tensorflow.keras import layers
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 
+proj_id = 'mnist'
 buffer_size = 60000
 batch_size = 256
-epochs = 100
+epochs = 160
 noise_dim = 100
 mean_val = 255.0 / 2.0
 interval = 5
+sample_size = 4
+sample_cnt = 4
+output_dir = os.path.join('.', 'output', proj_id)
+img_output_dir = os.path.join(output_dir, 'images')
+ckpt_output_dir = os.path.join(output_dir, 'checkpoints')
 
 
-def prepare_dataset():
-    (train_imgs, train_labels), (_, _) = tf.keras.datasets.mnist.load_data()
+def prepare_dataset(dataset_id):
+    train_imgs = None
+    if dataset_id == "fashion_mnist":
+        (train_imgs, _), (_, _) = tf.keras.datasets.fashion_mnist.load_data()
+    if dataset_id == "mnist":
+        (train_imgs, _), (_, _) = tf.keras.datasets.mnist.load_data()
     train_imgs = train_imgs.reshape(
         train_imgs.shape[0], 28, 28, 1).astype('float32')
     train_imgs = (train_imgs - mean_val) / mean_val
@@ -94,28 +102,41 @@ def train_step(imgs, gen, dis, gen_opt, dis_opt):
 
 def generate_img(gen, rand_input, epoch):
     preds = gen(rand_input)
-    for i in range(preds.shape[0]):
-      fig = plt.figure()
-      plt.imshow(preds[i, :, :, 0] * mean_val + mean_val, cmap='gray')
-      save_loc = os.path.join('.', 'output', 'epoch_{0}'.format(epoch))
-      if not os.path.exists(save_loc):
-        os.makedirs(save_loc)
-      plt.savefig(os.path.join(save_loc, 'sample_{0}.png'.format(i)))
+    fig = plt.figure(figsize=(sample_size, 1))
+    fig, axs = plt.subplots(sample_size, sample_size)
+    for i in range(sample_size):
+        for j in range(sample_size):
+            axs[i, j].imshow(preds[i, :, :, 0] * mean_val +
+                             mean_val, cmap='gray')
+            axs[i, j].set_axis_off()
+    save_loc = os.path.join(img_output_dir, 'epoch_{0}'.format(epoch))
+    create_directory_if_not_exist(save_loc)
+    plt.margins(0, 0)
+    plt.savefig(os.path.join(save_loc, 'sample.png'))
 
 
 def main():
-    train_set = prepare_dataset()
+    train_set = prepare_dataset(proj_id)
     check_gpu(logger)
     gen = build_generator_model()
     dis = build_discriminator_model()
     gen_opt = tf.keras.optimizers.Adam(1e-4)
     dis_opt = tf.keras.optimizers.Adam(1e-4)
+    create_directory_if_not_exist(ckpt_output_dir)
+    checkpoint = tf.train.Checkpoint(generator_optimizer=gen_opt,
+                                     discriminator_optimizer=dis_opt,
+                                     generator=gen,
+                                     discriminator=dis)
+    manager = tf.train.CheckpointManager(
+        checkpoint, ckpt_output_dir, max_to_keep=3)
+    manager.restore_or_initialize()
     for e in range(epochs):
         logger.info('Start epoch {0}'.format(e))
         for img_batch in train_set:
             train_step(img_batch, gen, dis, gen_opt, dis_opt)
         if (e + 1) % interval == 0:
-          generate_img(gen, tf.random.normal([10, noise_dim]), e)
+            generate_img(gen, tf.random.normal([sample_size**2, noise_dim]), e)
+            manager.save()
     logger.info('Done')
 
 
