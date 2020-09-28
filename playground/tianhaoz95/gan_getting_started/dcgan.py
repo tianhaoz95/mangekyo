@@ -1,7 +1,7 @@
 import tensorflow as tf
 import os
 import matplotlib.pyplot as plt
-from utils import check_gpu, create_directory_if_not_exist
+from utils import check_gpu, create_directory_if_not_exist, restore_previous_checkpoint
 from loguru import logger
 from tensorflow.keras import layers
 
@@ -129,7 +129,7 @@ def main():
                                      discriminator=dis)
     manager = tf.train.CheckpointManager(
         checkpoint, ckpt_output_dir, max_to_keep=3)
-    manager.restore_or_initialize()
+    restore_previous_checkpoint(checkpoint, manager, ckpt_output_dir, logger)
     for e in range(epochs):
         logger.info('Start epoch {0}'.format(e))
         for img_batch in train_set:
