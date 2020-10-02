@@ -49,7 +49,7 @@ def generate_img(gen, rand_input, epoch, sample_size, mean_val, img_output_dir):
     create_directory_if_not_exist(save_loc)
     plt.margins(0, 0)
     plt.savefig(os.path.join(save_loc, 'sample.png'))
-    plt.close(fig)
+    plt.close('all')
 
 
 def discriminator_loss(real, fake):
@@ -92,10 +92,10 @@ def train(dataset, gen, dis, gen_opt, dis_opt, logger, ckpt_output_dir,
         checkpoint, ckpt_output_dir, max_to_keep=3)
     restore_previous_checkpoint(checkpoint, manager, ckpt_output_dir, logger)
     for e in range(epochs):
-        logger.info('Start epoch {0}'.format(e))
-        for img_batch in dataset:
+        logger.info('Start epoch {0}/{1}'.format(e, epochs))
+        for batch_idx in range(32):
             train_step(
-                imgs=img_batch[0],
+                imgs=dataset.next()[0],
                 gen=gen, 
                 dis=dis,
                 gen_opt=gen_opt,
