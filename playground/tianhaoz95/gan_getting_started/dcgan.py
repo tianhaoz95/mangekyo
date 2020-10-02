@@ -16,7 +16,6 @@ noise_dim = 100
 mean_val = 255.0 / 2.0
 interval = 5
 sample_size = 4
-sample_cnt = 4
 output_dir = os.path.join('.', 'output', proj_id)
 img_output_dir = os.path.join(output_dir, 'images')
 ckpt_output_dir = os.path.join(output_dir, 'checkpoints')

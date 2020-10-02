@@ -4,8 +4,16 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 from tensorflow import keras
 
+def get_metadata(project_id):
+    output_dir = os.path.join('.', 'output', project_id)
+    return {
+        'img_output_dir': os.path.join(output_dir, 'images'),
+        'ckpt_output_dir': os.path.join(output_dir, 'checkpoints'),
+    }
 
 def check_gpu(logger):
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+    os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
     gpus = tf.config.list_physical_devices('GPU')
     logger.info('Found Tensorflow with version ' + str(tf.__version__))
     logger.info('Found GPU: ' + str(len(gpus)))
@@ -28,19 +36,6 @@ def restore_previous_checkpoint(ckpt, ckpt_manager, ckpt_location, logger):
     logger.info('Restore checkpoint done.')
 
 
-def load_pokemon_dataset():
-    img_gen = keras.preprocessing.image.ImageDataGenerator(
-        data_format='channels_last'
-    )
-    dataset = keras.preprocessing.image.DirectoryIterator(
-        os.path.join('.', 'dataset'),
-        img_gen,
-        classes=['pokemon'],
-        color_mode='grayscale'
-    )
-    return dataset
-
-
 def generate_img(gen, rand_input, epoch, sample_size, mean_val, img_output_dir):
     preds = gen(rand_input)
     fig = plt.figure(figsize=(sample_size, 1))
@@ -54,6 +49,7 @@ def generate_img(gen, rand_input, epoch, sample_size, mean_val, img_output_dir):
     create_directory_if_not_exist(save_loc)
     plt.margins(0, 0)
     plt.savefig(os.path.join(save_loc, 'sample.png'))
+    plt.close(fig)
 
 
 def discriminator_loss(real, fake):
@@ -83,7 +79,9 @@ def train_step(imgs, gen, dis, gen_opt, dis_opt, batch_size, noise_dim):
     dis_opt.apply_gradients(zip(dis_grads, dis.trainable_variables))
 
 
-def train(dataset, gen, dis, gen_opt, dis_opt, logger, ckpt_output_dir, epochs, interval, sample_size, noise_dim):
+def train(dataset, gen, dis, gen_opt, dis_opt, logger, ckpt_output_dir,
+            epochs, interval, sample_size, noise_dim, batch_size, mean_val,
+            img_output_dir):
     check_gpu(logger)
     create_directory_if_not_exist(ckpt_output_dir)
     checkpoint = tf.train.Checkpoint(generator_optimizer=gen_opt,
@@ -96,8 +94,21 @@ def train(dataset, gen, dis, gen_opt, dis_opt, logger, ckpt_output_dir, epochs, 
     for e in range(epochs):
         logger.info('Start epoch {0}'.format(e))
         for img_batch in dataset:
-            train_step(img_batch, gen, dis, gen_opt, dis_opt)
+            train_step(
+                imgs=img_batch[0],
+                gen=gen, 
+                dis=dis,
+                gen_opt=gen_opt,
+                dis_opt=dis_opt,
+                batch_size=batch_size,
+                noise_dim=noise_dim)
         if (e + 1) % interval == 0:
-            generate_img(gen, tf.random.normal([sample_size**2, noise_dim]), e)
+            generate_img(
+                gen=gen,
+                rand_input=tf.random.normal([sample_size**2, noise_dim]),
+                epoch=e,
+                sample_size=sample_size,
+                mean_val=mean_val,
+                img_output_dir=img_output_dir )
             manager.save()
     logger.info('Done')
