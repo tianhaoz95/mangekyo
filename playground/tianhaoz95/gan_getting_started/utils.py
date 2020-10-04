@@ -1,15 +1,25 @@
 import os
 import semver
 import tensorflow as tf
+import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow import keras
+from tqdm import tqdm
 
 def get_metadata(project_id):
     output_dir = os.path.join('.', 'output', project_id)
+    image_mode = 'unknown'
+    if project_id == 'mnist' or project_id == 'fashion_mnist':
+        image_mode = 'greyscale'
+    if project_id == 'pokemon':
+        image_mode = 'rgb'
     return {
         'img_output_dir': os.path.join(output_dir, 'images'),
         'ckpt_output_dir': os.path.join(output_dir, 'checkpoints'),
+        'image_mode': image_mode,
+        'batch_size': 64
     }
+
 
 def check_gpu(logger):
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -36,16 +46,14 @@ def restore_previous_checkpoint(ckpt, ckpt_manager, ckpt_location, logger):
     logger.info('Restore checkpoint done.')
 
 
-def generate_img(gen, rand_input, epoch, sample_size, mean_val, img_output_dir):
+def generate_img(gen, rand_input, epoch, sample_size, mean_val, img_output_dir, visualize):
     preds = gen(rand_input)
     fig = plt.figure(figsize=(sample_size, 1))
     fig, axs = plt.subplots(sample_size, sample_size)
     for i in range(sample_size):
         for j in range(sample_size):
-            axs[i, j].imshow(preds[i, :, :, 0] * mean_val +
-                             mean_val, cmap='gray')
-            axs[i, j].set_axis_off()
-    save_loc = os.path.join(img_output_dir, 'epoch_{0}'.format(epoch))
+            visualize(preds, axs[i, j], i)
+    save_loc = os.path.join(img_output_dir, 'epoch_{0}'.format(epoch+1))
     create_directory_if_not_exist(save_loc)
     plt.margins(0, 0)
     plt.savefig(os.path.join(save_loc, 'sample.png'))
@@ -79,10 +87,11 @@ def train_step(imgs, gen, dis, gen_opt, dis_opt, batch_size, noise_dim):
     dis_opt.apply_gradients(zip(dis_grads, dis.trainable_variables))
 
 
-def train(dataset, gen, dis, gen_opt, dis_opt, logger, ckpt_output_dir,
-            epochs, interval, sample_size, noise_dim, batch_size, mean_val,
-            img_output_dir):
-    check_gpu(logger)
+def train(dataset, gen, dis, gen_opt, dis_opt, logger,
+          epochs, start_epoch, interval, sample_size,
+          noise_dim, batch_size, mean_val, train_per_epoch,
+          visualize, project_metadata):
+    ckpt_output_dir = project_metadata['ckpt_output_dir']
     create_directory_if_not_exist(ckpt_output_dir)
     checkpoint = tf.train.Checkpoint(generator_optimizer=gen_opt,
                                      discriminator_optimizer=dis_opt,
@@ -91,17 +100,21 @@ def train(dataset, gen, dis, gen_opt, dis_opt, logger, ckpt_output_dir,
     manager = tf.train.CheckpointManager(
         checkpoint, ckpt_output_dir, max_to_keep=3)
     restore_previous_checkpoint(checkpoint, manager, ckpt_output_dir, logger)
-    for e in range(epochs):
+    for e in range(start_epoch, start_epoch + epochs):
         logger.info('Start epoch {0}/{1}'.format(e, epochs))
-        for batch_idx in range(32):
+        step_cnt = 0
+        for batch in tqdm(dataset):
             train_step(
-                imgs=dataset.next()[0],
-                gen=gen, 
+                imgs=batch,
+                gen=gen,
                 dis=dis,
                 gen_opt=gen_opt,
                 dis_opt=dis_opt,
                 batch_size=batch_size,
                 noise_dim=noise_dim)
+            step_cnt += 1
+            if step_cnt > train_per_epoch:
+                break
         if (e + 1) % interval == 0:
             generate_img(
                 gen=gen,
@@ -109,6 +122,7 @@ def train(dataset, gen, dis, gen_opt, dis_opt, logger, ckpt_output_dir,
                 epoch=e,
                 sample_size=sample_size,
                 mean_val=mean_val,
-                img_output_dir=img_output_dir )
+                img_output_dir=project_metadata['img_output_dir'],
+                visualize=visualize)
             manager.save()
     logger.info('Done')
