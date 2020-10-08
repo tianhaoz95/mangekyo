@@ -1,4 +1,5 @@
 import argparse
+from cond_mnist import train_cond_mnist
 from pokemon import train_pokemon
 from mnist import train_mnist
 
@@ -13,5 +14,7 @@ if __name__ == '__main__':
         train_pokemon()
     elif args.project_id == 'mnist' or args.project_id == 'fashion_mnist':
         train_mnist(args.project_id)
+    elif args.project_id == 'cond_mnist' or args.project_id == 'cond_fashion_mnist':
+        train_cond_mnist(args.project_id)
     else:
         print('Project ID not found')
