@@ -1,10 +1,9 @@
 import os
 import semver
 import tensorflow as tf
-import numpy as np
 import matplotlib.pyplot as plt
-from tensorflow import keras
-from tqdm import tqdm
+from tensorflow.python.ops.gen_batch_ops import batch
+
 
 def get_metadata(project_id):
     output_dir = os.path.join('.', 'output', project_id)
@@ -46,8 +45,8 @@ def restore_previous_checkpoint(ckpt, ckpt_manager, ckpt_location, logger):
     logger.info('Restore checkpoint done.')
 
 
-def generate_img(gen, rand_input, epoch, sample_size, mean_val, img_output_dir, visualize):
-    preds = gen(rand_input)
+def generate_img(gen, gen_input, epoch, sample_size, img_output_dir, visualize):
+    preds = gen(gen_input)
     fig = plt.figure(figsize=(sample_size, 1))
     fig, axs = plt.subplots(sample_size, sample_size)
     for i in range(sample_size):
@@ -73,10 +72,10 @@ def generator_loss(fake):
 
 
 @tf.function
-def train_step(imgs, gen, dis, gen_opt, dis_opt, batch_size, noise_dim):
-    noise = tf.random.normal([batch_size, noise_dim])
+def train_step(imgs, gen, dis, gen_opt, dis_opt, batch_size, gen_input_generator):
+    gen_input = gen_input_generator.next(batch_size)
     with tf.GradientTape() as gen_tape, tf.GradientTape() as dis_tape:
-        gen_imgs = gen(noise)
+        gen_imgs = gen(gen_input)
         real_out = dis(imgs)
         fake_out = dis(gen_imgs)
         gen_loss = generator_loss(fake_out)
@@ -89,8 +88,8 @@ def train_step(imgs, gen, dis, gen_opt, dis_opt, batch_size, noise_dim):
 
 def train(dataset, gen, dis, gen_opt, dis_opt, logger,
           epochs, start_epoch, interval, sample_size,
-          noise_dim, batch_size, mean_val, train_per_epoch,
-          visualize, project_metadata):
+          batch_size, mean_val, train_per_epoch,
+          visualize, project_metadata, gen_input_generator):
     ckpt_output_dir = project_metadata['ckpt_output_dir']
     create_directory_if_not_exist(ckpt_output_dir)
     checkpoint = tf.train.Checkpoint(generator_optimizer=gen_opt,
@@ -100,10 +99,13 @@ def train(dataset, gen, dis, gen_opt, dis_opt, logger,
     manager = tf.train.CheckpointManager(
         checkpoint, ckpt_output_dir, max_to_keep=3)
     restore_previous_checkpoint(checkpoint, manager, ckpt_output_dir, logger)
-    for e in range(start_epoch, start_epoch + epochs):
-        logger.info('Start epoch {0}/{1}'.format(e, epochs))
+    max_epoch = start_epoch + epochs
+    for e in range(start_epoch, max_epoch):
         step_cnt = 0
-        for batch in tqdm(dataset):
+        for batch in dataset:
+            if step_cnt % 25 == 0:
+                logger.info(
+                    'Epoch {0}/{1}: step {2}'.format(e, max_epoch, step_cnt))
             train_step(
                 imgs=batch,
                 gen=gen,
@@ -111,17 +113,17 @@ def train(dataset, gen, dis, gen_opt, dis_opt, logger,
                 gen_opt=gen_opt,
                 dis_opt=dis_opt,
                 batch_size=batch_size,
-                noise_dim=noise_dim)
+                gen_input_generator=gen_input_generator)
             step_cnt += 1
             if step_cnt > train_per_epoch:
                 break
         if (e + 1) % interval == 0:
             generate_img(
                 gen=gen,
-                rand_input=tf.random.normal([sample_size**2, noise_dim]),
+                gen_input=gen_input_generator.next(sample_size**2),
+                # rand_input=tf.random.normal([sample_size**2, noise_dim]),
                 epoch=e,
                 sample_size=sample_size,
-                mean_val=mean_val,
                 img_output_dir=project_metadata['img_output_dir'],
                 visualize=visualize)
             manager.save()
