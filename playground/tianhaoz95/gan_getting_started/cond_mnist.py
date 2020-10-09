@@ -1,7 +1,8 @@
 import tensorflow as tf
 from tensorflow import keras
 from loguru import logger
-from utils import check_gpu
+from utils import check_gpu, get_metadata, train
+from mnist import visualize_mnist_sample
 
 mean_val = 255.0 / 2.0
 
@@ -26,25 +27,58 @@ def load_cond_mnist_dataset(project_id, buf_size, batch_size):
 
 class GeneratorModel_v1(keras.Model):
     def __init__(self):
+        super(YourClass, self).__init__()
         # Expand 7*7*128 features into a (7,7,128) tensor
         self.dense_1 = keras.layers.Dense(7*7*255)
         self.bn_1 = keras.layers.BatchNormalization()
         self.relu_1 = keras.layers.LeakyReLU()
-        self.reshape = keras.layers.Reshape((7,7, 255))
+        self.reshape_1 = keras.layers.Reshape((7, 7, 255))
         # Expand (10,) to (7,7,1)
         self.dense_2 = keras.layers.Dense(7*7*1)
+        self.reshape_2 = keras.layers.Reshape((7, 7, 1))
         # From (7,7,256) to (7,7,128)
-        self.convt_1 = keras.layers.Conv2DTranspose(128, (5, 5), strides=1, padding='same', use_bias=False)
+        self.convt_1 = keras.layers.Conv2DTranspose(
+            128, (5, 5), strides=1, padding='same', use_bias=False)
+        self.convt_bn_1 = keras.layers.BatchNormalization()
+        self.convt_relu_1 = keras.layers.LeakyReLU()
         # From (7,7,128) to (14,14,64)
-
+        self.convt_2 = keras.layers.Conv2DTranspose(
+            64, (5, 5), strides=1, padding='same', use_bias=False)
+        self.convt_bn_2 = keras.layers.BatchNormalization()
+        self.convt_relu_2 = keras.layers.LeakyReLU()
+        # From (14,14,64) to (28,28,1)
+        self.convt_out = keras.layers.Conv2DTranspose(
+            1, (5, 5), strides=2, padding='same', use_bias=False)
 
     def run(self, inputs):
         feat_x = inputs['feat']
         label_x = inputs['label']
+        # Expand features to image channels
+        feat_x = self.dense_1(feat_x)
+        feat_x = self.bn_1(feat_x)
+        feat_x = self.relu_1(feat_x)
+        feat_x = self.reshape_1(feat_x)
+        # Expand label input to a image channel
+        label_x = self.dense_2(label_x)
+        label_x = self.reshape_2(label_x)
+        # Concat label and feature
+        x = tf.stack([feat_x, label_x])
+        # From (7,7,256) to (7,7,128)
+        x = self.convt_1(x)
+        x = self.convt_bn_1(x)
+        x = self.convt_relu_1(x)
+        # From (7,7,128) to (14,14,64)
+        x = self.convt_2(x)
+        x = self.convt_bn_2(x)
+        x = self.convt_relu_2(x)
+        # From (14,14,64) to (28,28,1)
+        x = self.convt_out(x)
+        return x
 
 
 class DiscriminatorModel_v1(keras.Model):
     def __init__(self):
+        super(YourClass, self).__init__()
         self.expand_layer = keras.layers.Dense(28*28*1)
         self.conv_1 = keras.layers.Conv2D(
             64, (5, 5), strides=2, padding='same', input_shape=(28, 28, 1))
@@ -77,4 +111,22 @@ def train_cond_mnist(project_id):
     check_gpu(logger)
     buf_size = 60000
     batch_size = 256
-    train_set = load_cond_mnist_dataset(project_id, buf_size, batch_size)
+    project_metadata = get_metadata(project_id)
+    train(
+        dataset=load_cond_mnist_dataset(project_id, buf_size, batch_size),
+        gen=GeneratorModel_v1(),
+        dis=DiscriminatorModel_v1(),
+        gen_opt=keras.optimizers.Adam(1e-4),
+        dis_opt=keras.optimizers.Adam(1e-4),
+        logger=logger,
+        epochs=2000,
+        start_epoch=0,
+        interval=100,
+        train_per_epoch=300,
+        sample_size=4,
+        noise_dim=256,
+        batch_size=32,
+        mean_val=mean_val,
+        visualize=visualize_mnist_sample,
+        project_metadata=project_metadata
+    )
