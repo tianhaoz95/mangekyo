@@ -38,7 +38,6 @@ class CondMnistInputGenerator():
         label = tf.one_hot([i % 10 for i in range(sample_size)], 10, dtype=tf.float32)
         return [feat, label]
 
-
 class GeneratorModel_v2(keras.Model):
     def __init__(self):
         super(GeneratorModel_v1, self).__init__()
@@ -195,6 +194,7 @@ class DiscriminatorModel_v1(keras.Model):
         x = self.flatten(x)
         x = self.out(x)
         return x
+
 
 
 def generator_factory(project_id):
