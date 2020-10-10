@@ -88,8 +88,8 @@ def train_step(imgs, gen, dis, gen_opt, dis_opt, batch_size, gen_input_generator
 
 def train(dataset, gen, dis, gen_opt, dis_opt, logger,
           epochs, start_epoch, interval, sample_size,
-          batch_size, mean_val, train_per_epoch,
-          visualize, project_metadata, gen_input_generator):
+          batch_size, train_per_epoch, visualize,
+          project_metadata, gen_input_generator):
     ckpt_output_dir = project_metadata['ckpt_output_dir']
     create_directory_if_not_exist(ckpt_output_dir)
     checkpoint = tf.train.Checkpoint(generator_optimizer=gen_opt,
@@ -121,7 +121,6 @@ def train(dataset, gen, dis, gen_opt, dis_opt, logger,
             generate_img(
                 gen=gen,
                 gen_input=gen_input_generator.next(sample_size**2),
-                # rand_input=tf.random.normal([sample_size**2, noise_dim]),
                 epoch=e,
                 sample_size=sample_size,
                 img_output_dir=project_metadata['img_output_dir'],
