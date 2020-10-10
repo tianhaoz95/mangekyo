@@ -51,7 +51,7 @@ def generate_img(gen, gen_input, epoch, sample_size, img_output_dir, visualize):
     fig, axs = plt.subplots(sample_size, sample_size)
     for i in range(sample_size):
         for j in range(sample_size):
-            visualize(preds, axs[i, j], i)
+            visualize(preds, axs[i, j], i * sample_size + j)
     save_loc = os.path.join(img_output_dir, 'epoch_{0}'.format(epoch+1))
     create_directory_if_not_exist(save_loc)
     plt.margins(0, 0)
