@@ -26,6 +26,7 @@ def load_cond_mnist_dataset(project_id, buf_size, batch_size):
 
 def visualize_cond_mnist_sample(samples, ax, i):
     img = tf.clip_by_value(samples[0][i, :, :, 0] * mean_val + mean_val, 0, 255)
+    ax.set_title('Sample for {0}'.format(i))
     ax.imshow(img.numpy().astype(int), cmap='gray')
     ax.set_axis_off()
 
@@ -40,9 +41,9 @@ class CondMnistInputGenerator():
 
 class GeneratorModel_v2(keras.Model):
     def __init__(self):
-        super(GeneratorModel_v1, self).__init__()
+        super(GeneratorModel_v2, self).__init__()
         # Expand 7*7*128 features into a (7,7,128) tensor
-        self.dense_1 = keras.layers.Dense(7*7*255)
+        self.dense_1 = keras.layers.Dense(7*7*256)
         self.bn_1 = keras.layers.BatchNormalization()
         self.relu_1 = keras.layers.LeakyReLU()
         self.reshape_1 = keras.layers.Reshape((7, 7, 256))
@@ -63,7 +64,7 @@ class GeneratorModel_v2(keras.Model):
     def call(self, inputs):
         feat_x = inputs[0]
         label = inputs[1]
-        x = tf.concat([feat_x, label])
+        x = tf.concat([feat_x, label], axis=-1)
         # Expand features to image channels
         x = self.dense_1(x)
         x = self.bn_1(x)
@@ -84,7 +85,7 @@ class GeneratorModel_v2(keras.Model):
 
 class DiscriminatorModel_v2(keras.Model):
     def __init__(self):
-        super(DiscriminatorModel_v1, self).__init__()
+        super(DiscriminatorModel_v2, self).__init__()
         self.conv_1 = keras.layers.Conv2D(
             64, (5, 5), strides=2, padding='same', input_shape=(28, 28, 1))
         self.relu_1 = keras.layers.LeakyReLU()
@@ -108,7 +109,7 @@ class DiscriminatorModel_v2(keras.Model):
         x = self.relu_2(x)
         x = self.drop_2(x)
         x = self.flatten(x)
-        x = tf.concat([x, labels])
+        x = tf.concat([x, labels], axis=-1)
         x = self.out(x)
         return x
 
@@ -228,11 +229,10 @@ def train_cond_mnist(project_id):
         logger=logger,
         epochs=5000,
         start_epoch=0,
-        interval=100,
+        interval=50,
         train_per_epoch=300,
-        sample_size=4,
+        sample_size=3,
         batch_size=32,
-        mean_val=mean_val,
         visualize=visualize_cond_mnist_sample,
         project_metadata=get_metadata(project_id=project_id),
         gen_input_generator=CondMnistInputGenerator(feat_dim=100),
