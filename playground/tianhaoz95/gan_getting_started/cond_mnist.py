@@ -46,7 +46,7 @@ class CondMnistInputGenerator():
         return [feat, labels_onehot, tf.expand_dims(labels, 1)]
 
 
-def train_cond_mnist(project_id, epoch):
+def train_cond_mnist(project_id, epoch, train_per_epoch, interval):
     check_gpu(logger)
     train(
         dataset=load_cond_mnist_dataset(
@@ -61,8 +61,8 @@ def train_cond_mnist(project_id, epoch):
         logger=logger,
         epochs=epoch,
         start_epoch=0,
-        interval=20,
-        train_per_epoch=300,
+        interval=interval,
+        train_per_epoch=train_per_epoch,
         sample_size=3,
         batch_size=32,
         visualize=visualize_cond_mnist_sample,
