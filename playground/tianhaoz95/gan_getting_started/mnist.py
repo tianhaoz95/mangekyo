@@ -36,7 +36,7 @@ def visualize_mnist_sample(samples, ax, i):
     ax.set_axis_off()
 
 
-def train_mnist(project_id, epoch):
+def train_mnist(project_id, epoch, train_per_epoch, interval):
     check_gpu(logger)
     project_metadata = get_metadata(project_id)
     train(
@@ -51,8 +51,8 @@ def train_mnist(project_id, epoch):
         logger=logger,
         epochs=epoch,
         start_epoch=0,
-        interval=20,
-        train_per_epoch=300,
+        interval=interval,
+        train_per_epoch=train_per_epoch,
         sample_size=4,
         batch_size=32,
         visualize=visualize_mnist_sample,

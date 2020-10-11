@@ -24,10 +24,10 @@ jobs:
       - name: install deps
         run: pip install tensorflow loguru matplotlib semver
       - name: run MNIST GAN tests
-        run: python cli.py --id mnist --epoch 3
+        run: python cli.py --id mnist --epoch 6 --train_per_epoch 6 --interval 2
       - name: run MNIST cGAN tests
-        run: python cli.py --id cond_mnist --epoch 3
+        run: python cli.py --id cond_mnist --epoch 6 --train_per_epoch 6 --interval 2
       - name: run fashion MNIST GAN tests
-        run: python cli.py --id fashion_mnist --epoch 3
+        run: python cli.py --id fashion_mnist --epoch 6 --train_per_epoch 6 --interval 2
       - name: run fashion MNIST cGAN tests
-        run: python cli.py --id cond_fashion_mnist --epoch 3
+        run: python cli.py --id cond_fashion_mnist --epoch 6 --train_per_epoch 6 --interval 2
