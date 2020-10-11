@@ -3,11 +3,13 @@ on:
   push:
     paths:
       - "playground/tianhaoz95/gan_getting_started/**"
+      - ".github/workflows/tianhaoz95__gan-getting-started.yml"
   pull_request:
     branches:
       - "master"
     paths:
       - "playground/tianhaoz95/gan_getting_started/**"
+      - ".github/workflows/tianhaoz95__gan-getting-started.yml"
 jobs:
   server-test:
     runs-on: ubuntu-latest
