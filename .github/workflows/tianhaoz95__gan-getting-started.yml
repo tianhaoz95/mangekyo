@@ -1,0 +1,17 @@
+name: Test GAN Getting Started
+on:
+  push:
+    paths:
+      - "playground/tianhaoz95/"
+  pull_request:
+    branches:
+      - "master"
+    paths:
+      - "playground/tianhaoz95/"
+jobs:
+  server-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: run tests
+        run: echo "NOT IMPLEMENTED"

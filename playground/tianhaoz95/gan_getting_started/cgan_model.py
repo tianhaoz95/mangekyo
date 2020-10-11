@@ -2,9 +2,9 @@ import tensorflow as tf
 from tensorflow import keras
 
 
-class GeneratorModel_v4(keras.Model):
+class CondGeneratorModel(keras.Model):
     def __init__(self):
-        super(GeneratorModel_v4, self).__init__()
+        super(CondGeneratorModel, self).__init__()
         # Expand 7*7*128 features into a (7,7,128) tensor
         self.dense_1 = keras.layers.Dense(7*7*256)
         self.reshape_1 = keras.layers.Reshape((7, 7, 256))
@@ -50,9 +50,9 @@ class GeneratorModel_v4(keras.Model):
         return [x, None, label]
 
 
-class DiscriminatorModel_v4(keras.Model):
+class CondDiscriminatorModel(keras.Model):
     def __init__(self):
-        super(DiscriminatorModel_v4, self).__init__()
+        super(CondDiscriminatorModel, self).__init__()
         self.embedder = keras.layers.Embedding(10, 100)
         self.expand_layer = keras.layers.Dense(28*28*1)
         self.reshape_layer = keras.layers.Reshape((28, 28, 1))
