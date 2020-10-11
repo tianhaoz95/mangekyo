@@ -2,12 +2,12 @@ name: Test GAN Getting Started
 on:
   push:
     paths:
-      - "playground/tianhaoz95/gan_getting_started"
+      - "playground/tianhaoz95/gan_getting_started/**"
   pull_request:
     branches:
       - "master"
     paths:
-      - "playground/tianhaoz95/gan_getting_started"
+      - "playground/tianhaoz95/gan_getting_started/**"
 jobs:
   server-test:
     runs-on: ubuntu-latest
