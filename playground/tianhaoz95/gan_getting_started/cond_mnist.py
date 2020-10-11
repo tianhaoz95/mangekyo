@@ -46,7 +46,7 @@ class CondMnistInputGenerator():
         return [feat, labels_onehot, tf.expand_dims(labels, 1)]
 
 
-def train_cond_mnist(project_id):
+def train_cond_mnist(project_id, epoch):
     check_gpu(logger)
     train(
         dataset=load_cond_mnist_dataset(
@@ -59,7 +59,7 @@ def train_cond_mnist(project_id):
         gen_opt=keras.optimizers.Adam(1e-4),
         dis_opt=keras.optimizers.Adam(1e-4),
         logger=logger,
-        epochs=1000,
+        epochs=epoch,
         start_epoch=0,
         interval=20,
         train_per_epoch=300,

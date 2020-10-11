@@ -2,16 +2,30 @@ name: Test GAN Getting Started
 on:
   push:
     paths:
-      - "playground/tianhaoz95/"
+      - "playground/tianhaoz95/gan_getting_started"
   pull_request:
     branches:
       - "master"
     paths:
-      - "playground/tianhaoz95/"
+      - "playground/tianhaoz95/gan_getting_started"
 jobs:
   server-test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: playground/tianhaoz95/gan_getting_started
     steps:
       - uses: actions/checkout@v2
-      - name: run tests
-        run: echo "NOT IMPLEMENTED"
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: install deps
+        run: pip install tensorflow loguru matplotlib semver
+      - name: run MNIST GAN tests
+        run: python cli.py --id mnist --epoch 3
+      - name: run MNIST cGAN tests
+        run: python cli.py --id cond_mnist --epoch 3
+      - name: run fashion MNIST GAN tests
+        run: python cli.py --id fashion_mnist --epoch 3
+      - name: run fashion MNIST cGAN tests
+        run: python cli.py --id cond_fashion_mnist --epoch 3

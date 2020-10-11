@@ -36,7 +36,7 @@ def visualize_mnist_sample(samples, ax, i):
     ax.set_axis_off()
 
 
-def train_mnist(project_id):
+def train_mnist(project_id, epoch):
     check_gpu(logger)
     project_metadata = get_metadata(project_id)
     train(
@@ -49,7 +49,7 @@ def train_mnist(project_id):
         gen_opt=keras.optimizers.Adam(1e-4),
         dis_opt=keras.optimizers.Adam(1e-4),
         logger=logger,
-        epochs=1000,
+        epochs=epoch,
         start_epoch=0,
         interval=20,
         train_per_epoch=300,
